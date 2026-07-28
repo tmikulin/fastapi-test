@@ -5,26 +5,22 @@ import os
 
 app = FastAPI()
 
-# Airtable Config
-AIRTABLE_TOKEN = os.getenv("AIRTABLE_TOKEN")
-BASE_ID = os.getenv("BASE_ID")
-TABLE_NAME = "IP Whitelist Test"
+# Proxy Config (Format: http://username:password@proxy.dns.com:port)
+PROXY_URL = os.getenv("OUTBOUNDGATEWAY_URL")
+PROXIES = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else None
 
 class AirtableTrigger(BaseModel):
     record_id: str
 
 @app.post("/proxy")
 async def proxy_request(trigger: AirtableTrigger):
-    # 1. Make outbound request from THIS server (uses your Static IP)
+    # 1. Make outbound request THROUGH the static IP proxy
     target_url = "https://httpbin.org/ip"
-    response = requests.get(target_url).json()
+    
+    response = requests.get(target_url, proxies=PROXIES).json()
     detected_ip = response.get("origin")
 
-    # 2. Update Airtable with the IP seen by the target
-    airtable_url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_NAME}/{trigger.record_id}"
-    headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
-    payload = {"fields": {"Status": "Success", "Returned IP": detected_ip}}
-    
-    requests.patch(airtable_url, headers=headers, json=payload)
-
-    return {"status": "success", "ip_used": detected_ip}
+    return {
+        "status": "success", 
+        "ip_used": detected_ip
+    }
