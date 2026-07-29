@@ -1,9 +1,21 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import os
 
 app = FastAPI()
+
+# --- ADD THIS CORS BLOCK ---
+# This allows Airtable's browser extension to read the response
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"], # Allows POST, GET, etc.
+    allow_headers=["*"], # Allows all headers
+)
+# ---------------------------
 
 # Proxy Config (Format: http://username:password@proxy.dns.com:port)
 PROXY_URL = os.getenv("OUTBOUNDGATEWAY_URL")
